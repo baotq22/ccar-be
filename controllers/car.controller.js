@@ -3,11 +3,45 @@ const Car = require('../models/Car');
 const carController = {};
 
 carController.createCar = async (req, res, next) => {
-	try {
-		// YOUR CODE HERE
-	} catch (err) {
-		// YOUR CODE HERE
-	}
+  try {
+    const { make, model, release_date, transmission_type, size, style, price } = req.body;
+
+    const newCar = new Car({
+      make,
+      model,
+      year: release_date,
+      transmission_type,
+      vehicle_size: size,
+      vehicle_style: style,
+      msrp: price,
+      engine_fuel_type: 'Unknown',
+      engine_hp: 0,
+      engine_cylinders: 0,
+      driven_wheels: 'Unknown',
+      number_of_doors: 4,
+      highway_mpg: 0,
+      city_mpg: 0,
+      popularity: 0,
+      isDeleted: false
+    })
+
+    const savedCar = await newCar.save();
+
+    res.status(201).json({
+      message: "Create Car Successfully!",
+      car: {
+        make: savedCar.make,
+        model: savedCar.model,
+        release_date: savedCar.year,
+        transmission_type: savedCar.transmission_type,
+        size: savedCar.vehicle_size,
+        style: savedCar.vehicle_style,
+        price: savedCar.msrp,
+      },
+    })
+  } catch (err) {
+    res.status(500).json({ message: "Failed to create car", error: err.message });
+  }
 };
 
 carController.getCars = async (req, res, next) => {
@@ -16,46 +50,68 @@ carController.getCars = async (req, res, next) => {
     const limit = 10;
     const skip = (page - 1) * limit;
 
-    console.log('Fetching cars data from DB...');
+    const cars = await Car.find({ isDeleted: false })
+      .select('make model vehicle_size vehicle_style transmission_type msrp year')
+      .limit(limit)
+      .skip(skip);
 
-    // Fetch cars with pagination
-    const cars = await Car.find().skip(skip).limit(limit);
-
-    // Total count of cars
-    const totalCars = await Car.countDocuments();
+    const totalCars = await Car.countDocuments({ isDeleted: false });
     const totalPages = Math.ceil(totalCars / limit);
 
-    console.log('Total Cars:', totalCars);
-    console.log('Total Pages:', totalPages);
-    console.log('Fetched Cars:', cars.length);
-
-    return res.status(200).json({
-      message: 'Get Car List Successfully!',
-      cars,         // The cars for the current page
-      page,         // Current page number
-      totalPages,   // Total number of pages
-      totalCars,    // Total number of cars
+    res.status(200).json({
+      message: "Get Car List Successfully!",
+      cars,
+      page,
+      total: totalPages,
     });
   } catch (err) {
-    console.log('Error:', err.message);
-    return res.status(500).json({ message: 'Server Error', error: err.message });
+    res.status(500).json({ message: "Failed to retrieve car list", error: err.message });
   }
 };
 
 carController.editCar = async (req, res, next) => {
-	try {
-		// YOUR CODE HERE
-	} catch (err) {
-		// YOUR CODE HERE
-	}
+  try {
+    const carId = req.params.id;
+    const updatedData = req.body;
+
+    const updatedCar = await Car.findByIdAndUpdate(
+      carId,
+      { $set: updatedData },
+      { new: true }
+    );
+
+    if (!updatedCar) {
+      return res.status(404).json({ message: "Car not found!" });
+    }
+
+    res.status(200).json({
+      message: "Updated Successfully",
+      car: updatedCar,
+    })
+  } catch (err) {
+    res.status(500).json({ message: "Failed to update", error: err.message });
+  }
 };
 
 carController.deleteCar = async (req, res, next) => {
-	try {
-		// YOUR CODE HERE
-	} catch (err) {
-		// YOUR CODE HERE
-	}
+  try {
+    const carId = req.params.id;
+
+    const deletedCar = await Car.findByIdAndDelete(
+      carId
+    );
+
+    if (!deletedCar) {
+      return res.status(404).json({ message: "Car not found!" });
+    }
+
+    res.status(200).json({
+      message: "Delete Car Successfully!",
+      car: deletedCar,
+    })
+  } catch (err) {
+    res.status(500).json({ message: "Failed to delete car", error: err.message });
+  }
 };
 
 module.exports = carController;
